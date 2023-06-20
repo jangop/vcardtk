@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+
 import vobject
 from PIL import Image
 import re
@@ -6,6 +8,9 @@ from datetime import datetime
 import phonenumbers
 from urllib.parse import urlparse
 from loguru import logger
+from geopy.geocoders import Nominatim
+
+geolocator = Nominatim(user_agent="vcardtk")
 
 
 def normalize_vcard(vcard):
@@ -85,7 +90,12 @@ def validate_email_address(email):
 
 
 def normalize_addresses(vcard):
-    pass
+    fields = ["adr"]
+    for field in fields:
+        if field in vcard.contents:
+            addresses = vcard.contents[field]
+            for address in addresses:
+                geolocator.geocode(address)
 
 
 def normalize_urls(vcard):
@@ -132,10 +142,16 @@ def optimize_photo(photo_path, max_file_size, max_width, max_height):
     image.save(photo_path, optimize=True, quality=quality_min)
 
 
-def process_vcards(directory, max_file_size, max_width, max_height):
-    for filename in os.listdir(directory):
+def process_vcards(
+    input_directory: Path,
+    output_directory: Path,
+    max_file_size: int,
+    max_width: int,
+    max_height: int,
+):
+    for filename in os.listdir(input_directory):
         if filename.endswith(".vcf"):
-            vcard_path = os.path.join(directory, filename)
+            vcard_path = input_directory / filename
             with open(vcard_path, "r", encoding="utf-8") as file:
                 vcard_content = file.read()
 
@@ -151,7 +167,7 @@ def process_vcards(directory, max_file_size, max_width, max_height):
 
                 if photo_type == "b":
                     # Save the photo to a temporary file
-                    photo_file = os.path.join(directory, "temp_photo.jpg")
+                    photo_file = input_directory / "temp_photo.jpg"
                     with open(photo_file, "wb") as file:
                         file.write(photo_data)
 
@@ -165,20 +181,33 @@ def process_vcards(directory, max_file_size, max_width, max_height):
                     vcard.contents["photo"][0].value = optimized_photo_data
 
                     # Remove the temporary file
-                    # os.remove(photo_file)
+                    os.remove(photo_file)
 
             # Save the normalized and optimized vCard
-            output_path = os.path.join(directory, "normalized_" + filename)
+            output_directory.mkdir(exist_ok=True)
+            output_path = output_directory / f"normalized_{filename}"
             with open(output_path, "w", encoding="utf-8") as file:
                 file.write(vcard.serialize())
 
             logger.debug(f"Processed: {filename} -> {output_path}")
 
 
-# Usage example
-directory_path = "/home/jgoepfert/tmp/in"
-max_photo_file_size = 10000  # Maximum file size in bytes
-max_photo_width = 512  # Maximum width in pixels
-max_photo_height = 512  # Maximum height in pixels
+def main():
+    # Usage example
+    input_directory = Path("/home/jgoepfert/tmp/in")
+    output_directory = Path("/home/jgoepfert/tmp/out")
+    max_photo_file_size = 10000  # Maximum file size in bytes
+    max_photo_width = 512  # Maximum width in pixels
+    max_photo_height = 512  # Maximum height in pixels
 
-process_vcards(directory_path, max_photo_file_size, max_photo_width, max_photo_height)
+    process_vcards(
+        input_directory,
+        output_directory,
+        max_photo_file_size,
+        max_photo_width,
+        max_photo_height,
+    )
+
+
+if __name__ == "__main__":
+    main()
