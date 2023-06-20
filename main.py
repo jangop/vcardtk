@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 import phonenumbers
 from urllib.parse import urlparse
+from loguru import logger
 
 
 def normalize_vcard(vcard):
@@ -12,7 +13,7 @@ def normalize_vcard(vcard):
     normalize_name(vcard)
     normalize_dates(vcard)
     normalize_phone_numbers(vcard)
-    normalize_email_addresses(vcard)
+    validate_email_addresses(vcard)
     normalize_addresses(vcard)
     normalize_urls(vcard)
 
@@ -44,8 +45,8 @@ def normalize_dates(vcard):
                 date_obj = datetime.strptime(value, "%Y-%m-%d")
                 formatted_date = date_obj.strftime("%Y-%m-%d")
                 vcard.contents[field][0].value = formatted_date
-            except ValueError:
-                pass  # Invalid date format, leave as is
+            except ValueError as error:
+                logger.error(f"Invalid date format for {field}: {value}; {error}")
 
 
 def normalize_phone_numbers(vcard):
@@ -61,19 +62,26 @@ def normalize_phone_numbers(vcard):
                         parsed_number, phonenumbers.PhoneNumberFormat.E164
                     )
                     number.value = formatted_number
-                except phonenumbers.phonenumberutil.NumberParseException:
-                    pass  # Invalid phone number format, leave as is
+                except phonenumbers.phonenumberutil.NumberParseException as error:
+                    logger.error(f"Invalid phone number format: {value}; {error}")
 
 
-def normalize_email_addresses(vcard):
-    # Normalize email address fields by converting to lowercase
+def validate_email_addresses(vcard):
     fields = ["email"]
     for field in fields:
         if field in vcard.contents:
             addresses = vcard.contents[field]
             for address in addresses:
                 value = address.value.strip()
-                address.value = value.lower()
+                if not validate_email_address(value):
+                    logger.error(f"Invalid email address format: {value}")
+                    address.value = ""  # Remove invalid email addresses
+
+
+def validate_email_address(email):
+    # Validate email address format using regular expression
+    pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+    return re.match(pattern, email) is not None
 
 
 def normalize_addresses(vcard):
@@ -112,6 +120,8 @@ def optimize_photo(photo_path, max_file_size, max_width, max_height):
 
         # Check the resulting file size
         file_size = os.path.getsize(photo_path)
+
+        logger.debug(f"Quality: {quality}; File size: {file_size}")
 
         if file_size <= max_file_size:
             quality_min = quality
@@ -162,7 +172,7 @@ def process_vcards(directory, max_file_size, max_width, max_height):
             with open(output_path, "w", encoding="utf-8") as file:
                 file.write(vcard.serialize())
 
-            print(f"Processed: {filename} -> {output_path}")
+            logger.debug(f"Processed: {filename} -> {output_path}")
 
 
 # Usage example
