@@ -1,14 +1,17 @@
+import base64
 import os
+import re
+import tempfile
+from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
+import phonenumbers
+import tqdm
 import vobject
 from PIL import Image
-import re
-from datetime import datetime
-import phonenumbers
-from urllib.parse import urlparse
-from loguru import logger
 from geopy.geocoders import Nominatim
+from loguru import logger
 
 geolocator = Nominatim(user_agent="vcardtk")
 
@@ -47,9 +50,7 @@ def normalize_dates(vcard):
         if field in vcard.contents:
             value = vcard.contents[field][0].value.strip()
             try:
-                date_obj = datetime.strptime(value, "%Y-%m-%d")
-                formatted_date = date_obj.strftime("%Y-%m-%d")
-                vcard.contents[field][0].value = formatted_date
+                datetime.strptime(value, "%Y%m%d")
             except ValueError as error:
                 logger.error(f"Invalid date format for {field}: {value}; {error}")
 
@@ -62,10 +63,13 @@ def normalize_phone_numbers(vcard):
             for number in numbers:
                 value = number.value.strip()
                 try:
-                    parsed_number = phonenumbers.parse(value, None)
+                    parsed_number = phonenumbers.parse(value, "DE")
                     formatted_number = phonenumbers.format_number(
                         parsed_number, phonenumbers.PhoneNumberFormat.E164
                     )
+                    if formatted_number != value:
+                        logger.critical(
+                            f"Normalized phone number: {value} -> {formatted_number}")
                     number.value = formatted_number
                 except phonenumbers.phonenumberutil.NumberParseException as error:
                     logger.error(f"Invalid phone number format: {value}; {error}")
@@ -142,12 +146,60 @@ def optimize_photo(photo_path, max_file_size, max_width, max_height):
     image.save(photo_path, optimize=True, quality=quality_min)
 
 
+def process_single_vcard(vcard, max_file_size: int,
+                         max_width: int,
+                         max_height: int, ):
+    normalize_vcard(vcard)
+
+    # Optimize included photo if available
+    if "photo" in vcard.contents:
+        first_photo = vcard.contents["photo"][0]
+        try:
+            photo_type = first_photo.params["ENCODING"][0]
+            photo_data = first_photo.value
+        except KeyError:
+            try:
+                photo_type = "base64"
+                photo_data = first_photo.value
+                photo_data = base64.b64decode(photo_data)
+            except Exception as error:
+                if type(error) != base64.binascii.Error:
+                    raise
+                if first_photo.value.startswith("http"):
+                    logger.error(f"Photo URL given: {first_photo.value}")
+                    return vcard
+                else:
+                    logger.debug(f"Invalid photo format: {first_photo.value}")
+                    return vcard
+
+        if photo_type == "b":
+            # Save the photo to a temporary file
+            temp_dir = tempfile.gettempdir()
+            photo_file = Path(temp_dir) / "temp_photo.jpg"
+            with open(photo_file, "wb") as file:
+                file.write(photo_data)
+
+            # Optimize the photo
+            optimize_photo(photo_file, max_file_size, max_width, max_height)
+
+            # Read the optimized photo and update the vCard
+            with open(photo_file, "rb") as file:
+                optimized_photo_data = file.read()
+
+            vcard.contents["photo"][0].value = optimized_photo_data
+
+            # Remove the temporary file
+            os.remove(photo_file)
+
+    return vcard
+
+
 def process_vcards(
-    input_directory: Path,
-    output_directory: Path,
-    max_file_size: int,
-    max_width: int,
-    max_height: int,
+        input_directory: Path,
+        output_directory: Path,
+        max_file_size: int,
+        max_width: int,
+        max_height: int,
 ):
     for filename in os.listdir(input_directory):
         if filename.endswith(".vcf"):
@@ -155,44 +207,33 @@ def process_vcards(
             with open(vcard_path, "r", encoding="utf-8") as file:
                 vcard_content = file.read()
 
-            vcard = vobject.readOne(vcard_content)
+            normalized_vcards = []
+            for single_vcard in tqdm.tqdm(vobject.readComponents(vcard_content)):
+                # Process single vCard
+                normalized_vcard = process_single_vcard(single_vcard, max_file_size,
+                                                        max_width, max_height)
 
-            # Normalize vCard properties
-            normalize_vcard(vcard)
+                # Add to list of normalized vCards
+                normalized_vcards.append(normalized_vcard)
 
-            # Optimize included photo if available
-            if "photo" in vcard.contents:
-                photo_type = vcard.contents["photo"][0].params["ENCODING"][0]
-                photo_data = vcard.contents["photo"][0].value
-
-                if photo_type == "b":
-                    # Save the photo to a temporary file
-                    photo_file = input_directory / "temp_photo.jpg"
-                    with open(photo_file, "wb") as file:
-                        file.write(photo_data)
-
-                    # Optimize the photo
-                    optimize_photo(photo_file, max_file_size, max_width, max_height)
-
-                    # Read the optimized photo and update the vCard
-                    with open(photo_file, "rb") as file:
-                        optimized_photo_data = file.read()
-
-                    vcard.contents["photo"][0].value = optimized_photo_data
-
-                    # Remove the temporary file
-                    os.remove(photo_file)
+            # Create a new vCard with all normalized vCards
+            new_vcard = vobject.vCard()
+            for normalized_vcard in normalized_vcards:
+                new_vcard.add(normalized_vcard)
 
             # Save the normalized and optimized vCard
             output_directory.mkdir(exist_ok=True)
             output_path = output_directory / f"normalized_{filename}"
             with open(output_path, "w", encoding="utf-8") as file:
-                file.write(vcard.serialize())
+                file.write(new_vcard.serialize())
 
             logger.debug(f"Processed: {filename} -> {output_path}")
 
 
+@logger.catch()
 def main():
+    logger.remove()
+    logger.add(lambda msg: tqdm.tqdm.write(msg, end=""), colorize=True, level="INFO")
     # Usage example
     input_directory = Path("/home/jgoepfert/tmp/in")
     output_directory = Path("/home/jgoepfert/tmp/out")
