@@ -31,7 +31,7 @@ def _normalize_vcard(
     *,
     normalizations: Iterable[Normalization],
     phone_number_format: int,
-    fallback_region: str | None,
+    default_region: str | None,
 ) -> None:
     if Normalization.NAME in normalizations:
         normalize_name(vcard)
@@ -41,7 +41,7 @@ def _normalize_vcard(
         normalize_phone_numbers(
             vcard,
             phone_number_format=phone_number_format,
-            fallback_region=fallback_region,
+            default_region=default_region,
         )
     if Normalization.EMAIL in normalizations:
         validate_email_addresses(vcard)
@@ -58,7 +58,7 @@ def process_single_vcard(
     *,
     normalizations: Iterable[Normalization],
     phone_number_format: int,
-    fallback_region: str | None,
+    default_region: str | None,
     max_file_size: int,
     max_width: int,
     max_height: int,
@@ -67,7 +67,7 @@ def process_single_vcard(
         vcard,
         normalizations=normalizations,
         phone_number_format=phone_number_format,
-        fallback_region=fallback_region,
+        default_region=default_region,
     )
 
     # Optimize included photo if available
@@ -117,7 +117,7 @@ def process_vcards(
     *,
     normalizations: Iterable[Normalization],
     phone_number_format: int,
-    fallback_region: str | None,
+    default_region: str | None,
     max_file_size: int,
     max_width: int,
     max_height: int,
@@ -133,7 +133,7 @@ def process_vcards(
                     single_vcard,
                     normalizations=normalizations,
                     phone_number_format=phone_number_format,
-                    fallback_region=fallback_region,
+                    default_region=default_region,
                     max_file_size=max_file_size,
                     max_width=max_width,
                     max_height=max_height,

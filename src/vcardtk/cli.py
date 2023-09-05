@@ -41,10 +41,10 @@ class PhoneNumberFormat(enum.Enum):
     help="Phone number format.",
 )
 @click.option(
-    "--fallback-region",
+    "--default-region",
     type=str,
     default=None,
-    help="Fallback region for phone numbers, e.g., 'US' or 'DE'.",
+    help="Default region for phone numbers, e.g., 'US' or 'DE'.",
 )
 @click.option(
     "--max-photo-file-size",
@@ -69,7 +69,7 @@ def enter(
     destination,
     normalizations,
     phone_number_format,
-    fallback_region,
+    default_region,
     max_photo_file_size,
     max_photo_width,
     max_photo_height,
@@ -86,7 +86,7 @@ def enter(
             Normalization[normalization] for normalization in normalizations
         ],
         phone_number_format=PhoneNumberFormat[phone_number_format].value,
-        fallback_region=fallback_region,
+        default_region=default_region,
         max_file_size=max_photo_file_size,
         max_width=max_photo_width,
         max_height=max_photo_height,

@@ -21,7 +21,7 @@ def normalize_phone_numbers(
     vcard,
     *,
     phone_number_format: int,
-    fallback_region: str | None,
+    default_region: str | None,
 ):
     fields = ["tel"]
     for field in fields:
@@ -39,12 +39,16 @@ def normalize_phone_numbers(
                         f"Invalid phone number format: {original_number}; {error}"
                     )
                     vcard.prettyPrint()
-                    region = click.prompt(
-                        "Enter region code",
-                        type=str,
-                        default=fallback_region,
-                        value_proc=lambda x: x.upper(),
-                    )
+                    try:
+                        region = click.prompt(
+                            "Enter region code",
+                            type=str,
+                            default=default_region,
+                            value_proc=lambda x: x.upper(),
+                        )
+                    except click.exceptions.Abort:
+                        logger.info("Leaving phone number unchanged")
+                        return
                 else:
                     break
 
