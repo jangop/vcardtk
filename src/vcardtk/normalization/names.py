@@ -1,5 +1,7 @@
 import re
 
+from loguru import logger
+
 
 def normalize_name(vcard):
     field = "n"
@@ -16,3 +18,5 @@ def normalize_name(vcard):
         value = re.sub(r"\s+", " ", value)  # Remove extra white spaces
         value = value.title()  # Capitalize first letters
         vcard.contents[field][0].value = value
+    else:
+        logger.warning("No FN field found")

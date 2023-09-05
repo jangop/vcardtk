@@ -74,10 +74,10 @@ def process_single_vcard(
                     raise
                 if first_photo.value.startswith("http"):
                     logger.error(f"Photo URL given: {first_photo.value}")
-                    return vcard
+                    return
                 else:
                     logger.debug(f"Invalid photo format: {first_photo.value}")
-                    return vcard
+                    return
 
         if photo_type == "b":
             # Save the photo to a temporary file
@@ -98,8 +98,6 @@ def process_single_vcard(
             # Remove the temporary file
             os.remove(photo_file)
 
-    return vcard
-
 
 def process_vcards(
     input_directory: Path,
@@ -117,30 +115,17 @@ def process_vcards(
             with open(vcard_path, encoding="utf-8") as file:
                 vcard_content = file.read()
 
-            normalized_vcards = []
-            for single_vcard in tqdm.tqdm(vobject.readComponents(vcard_content)):
-                # Process single vCard
-                normalized_vcard = process_single_vcard(
-                    single_vcard,
-                    normalizations=normalizations,
-                    fallback_region=fallback_region,
-                    max_file_size=max_file_size,
-                    max_width=max_width,
-                    max_height=max_height,
-                )
-
-                # Add to list of normalized vCards
-                normalized_vcards.append(normalized_vcard)
-
-            # Create a new vCard with all normalized vCards
-            new_vcard = vobject.vCard()
-            for normalized_vcard in normalized_vcards:
-                new_vcard.add(normalized_vcard)
-
-            # Save the normalized and optimized vCard
             output_directory.mkdir(exist_ok=True)
             output_path = output_directory / f"normalized_{filename}"
             with open(output_path, "w", encoding="utf-8") as file:
-                file.write(new_vcard.serialize())
-
-            logger.debug(f"Processed: {filename} -> {output_path}")
+                for single_vcard in tqdm.tqdm(vobject.readComponents(vcard_content)):
+                    process_single_vcard(
+                        single_vcard,
+                        normalizations=normalizations,
+                        fallback_region=fallback_region,
+                        max_file_size=max_file_size,
+                        max_width=max_width,
+                        max_height=max_height,
+                    )
+                    file.write(single_vcard.serialize())
+                    file.write("\n")

@@ -1,8 +1,6 @@
 from datetime import datetime
 
 import phonenumbers
-import rich
-import rich.pretty
 from loguru import logger
 
 
@@ -81,7 +79,7 @@ def normalize_phone_numbers(vcard, *, fallback_region: str | None):
                 guessed_region = _guess_region(vcard)
                 if guessed_region:
                     logger.critical(f"Guessed region: {guessed_region}")
-                rich.inspect(vcard)
+                vcard.prettyPrint()
             else:
                 if formatted_number != original_number:
                     logger.info(
