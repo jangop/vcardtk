@@ -55,7 +55,12 @@ def _guess_region(vcard) -> str:
     return ""
 
 
-def normalize_phone_numbers(vcard, *, fallback_region: str | None):
+def normalize_phone_numbers(
+    vcard,
+    *,
+    phone_number_format: int,
+    fallback_region: str | None,
+):
     fields = ["tel"]
     for field in fields:
         if field not in vcard.contents:
@@ -68,7 +73,7 @@ def normalize_phone_numbers(vcard, *, fallback_region: str | None):
                 parsed_number = phonenumbers.parse(original_number)
 
                 formatted_number = phonenumbers.format_number(
-                    parsed_number, phonenumbers.PhoneNumberFormat.INTERNATIONAL
+                    parsed_number, phone_number_format
                 )
 
             except phonenumbers.phonenumberutil.NumberParseException as error:

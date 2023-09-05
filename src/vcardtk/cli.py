@@ -1,10 +1,19 @@
+import enum
 from pathlib import Path
 
 import click
+import phonenumbers
 import tqdm
 from loguru import logger
 
 from .core import Normalization, process_vcards
+
+
+class PhoneNumberFormat(enum.Enum):
+    E164 = phonenumbers.PhoneNumberFormat.E164
+    INTERNATIONAL = phonenumbers.PhoneNumberFormat.INTERNATIONAL
+    NATIONAL = phonenumbers.PhoneNumberFormat.NATIONAL
+    RFC3966 = phonenumbers.PhoneNumberFormat.RFC3966
 
 
 @click.command()
@@ -15,7 +24,7 @@ from .core import Normalization, process_vcards
 )
 @click.argument(
     "destination",
-    type=click.Path(path_type=Path, file_okay=True, dir_okay=False),
+    type=click.Path(path_type=Path, file_okay=True, dir_okay=False, writable=True),
     nargs=1,
 )
 @click.option(
@@ -24,6 +33,12 @@ from .core import Normalization, process_vcards
     multiple=True,
     default=[normalization.name for normalization in Normalization],
     help="Normalizations to apply.",
+)
+@click.option(
+    "--phone-number-format",
+    type=click.Choice([format.name for format in PhoneNumberFormat]),
+    default=PhoneNumberFormat.E164.name,
+    help="Phone number format.",
 )
 @click.option(
     "--fallback-region",
@@ -53,6 +68,7 @@ def enter(
     source,
     destination,
     normalizations,
+    phone_number_format,
     fallback_region,
     max_photo_file_size,
     max_photo_width,
@@ -69,6 +85,7 @@ def enter(
         normalizations=[
             Normalization[normalization] for normalization in normalizations
         ],
+        phone_number_format=PhoneNumberFormat[phone_number_format].value,
         fallback_region=fallback_region,
         max_file_size=max_photo_file_size,
         max_width=max_photo_width,
