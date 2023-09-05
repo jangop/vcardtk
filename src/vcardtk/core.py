@@ -5,11 +5,10 @@ import tempfile
 from collections.abc import Iterable
 from pathlib import Path
 
-import tqdm
 import vobject
 from loguru import logger
 
-from .normalization.addresses import normalize_addresses, validate_email_addresses
+from .normalization.addresses import validate_email_addresses
 from .normalization.names import normalize_name
 from .normalization.numbers import normalize_dates, normalize_phone_numbers
 from .normalization.photos import optimize_photo
@@ -21,7 +20,6 @@ class Normalization(str, enum.Enum):
     DATE = "date"
     PHONE = "phone"
     EMAIL = "email"
-    PLACE = "place"
     URL = "url"
     PHOTO = "photo"
 
@@ -45,8 +43,6 @@ def _normalize_vcard(
         )
     if Normalization.EMAIL in normalizations:
         validate_email_addresses(vcard)
-    if Normalization.PLACE in normalizations:
-        normalize_addresses(vcard)
     if Normalization.URL in normalizations:
         normalize_urls(vcard)
     if Normalization.PHOTO in normalizations:
@@ -128,7 +124,7 @@ def process_vcards(
             with open(source, encoding="utf-8") as source_file:
                 source_content = source_file.read()
 
-            for single_vcard in tqdm.tqdm(vobject.readComponents(source_content)):
+            for single_vcard in vobject.readComponents(source_content):
                 process_single_vcard(
                     single_vcard,
                     normalizations=normalizations,
