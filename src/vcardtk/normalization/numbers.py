@@ -35,7 +35,7 @@ def normalize_phone_numbers(
                 try:
                     parsed_number = phonenumbers.parse(original_number, region)
                 except phonenumbers.phonenumberutil.NumberParseException as error:
-                    logger.error(
+                    logger.info(
                         f"Invalid phone number format: {original_number}; {error}"
                     )
                     vcard.prettyPrint()
@@ -47,8 +47,8 @@ def normalize_phone_numbers(
                             value_proc=lambda x: x.upper(),
                         )
                     except click.exceptions.Abort:
-                        logger.info("Leaving phone number unchanged")
-                        return
+                        if click.confirm("Leave as is and continue?", default=True):
+                            return
                 else:
                     break
 
