@@ -4,7 +4,7 @@ import click
 import tqdm
 from loguru import logger
 
-from .core import process_vcards
+from .core import Normalization, process_vcards
 
 
 @click.command()
@@ -12,6 +12,19 @@ from .core import process_vcards
     "input_directory", type=click.Path(path_type=Path, exists=True, file_okay=False)
 )
 @click.argument("output_directory", type=click.Path(path_type=Path, file_okay=False))
+@click.option(
+    "--normalizations",
+    type=click.Choice([normalization.name for normalization in Normalization]),
+    multiple=True,
+    default=[normalization.name for normalization in Normalization],
+    help="Normalizations to apply.",
+)
+@click.option(
+    "--fallback-region",
+    type=str,
+    default=None,
+    help="Fallback region for phone numbers, e.g., 'US' or 'DE'.",
+)
 @click.option(
     "--max-photo-file-size",
     type=int,
@@ -33,6 +46,8 @@ from .core import process_vcards
 def enter(
     input_directory,
     output_directory,
+    normalizations,
+    fallback_region,
     max_photo_file_size,
     max_photo_width,
     max_photo_height,
@@ -45,7 +60,11 @@ def enter(
     process_vcards(
         input_directory,
         output_directory,
-        max_photo_file_size,
-        max_photo_width,
-        max_photo_height,
+        normalizations=[
+            Normalization[normalization] for normalization in normalizations
+        ],
+        fallback_region=fallback_region,
+        max_file_size=max_photo_file_size,
+        max_width=max_photo_width,
+        max_height=max_photo_height,
     )

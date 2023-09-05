@@ -1,6 +1,8 @@
 import base64
+import enum
 import os
 import tempfile
+from collections.abc import Iterable
 from pathlib import Path
 
 import tqdm
@@ -14,24 +16,47 @@ from .normalization.photos import optimize_photo
 from .normalization.urls import normalize_urls
 
 
-def _normalize_vcard(vcard):
-    # Normalize vCard properties
-    normalize_name(vcard)
-    normalize_dates(vcard)
-    normalize_phone_numbers(vcard)
-    validate_email_addresses(vcard)
-    normalize_addresses(vcard)
-    normalize_urls(vcard)
+class Normalization(str, enum.Enum):
+    NAME = "name"
+    DATE = "date"
+    PHONE = "phone"
+    EMAIL = "email"
+    PLACE = "place"
+    URL = "url"
+    PHOTO = "photo"
+
+
+def _normalize_vcard(
+    vcard, *, normalizations: Iterable[Normalization], fallback_region: str | None
+) -> None:
+    if Normalization.NAME in normalizations:
+        normalize_name(vcard)
+    if Normalization.DATE in normalizations:
+        normalize_dates(vcard)
+    if Normalization.PHONE in normalizations:
+        normalize_phone_numbers(vcard, fallback_region=fallback_region)
+    if Normalization.EMAIL in normalizations:
+        validate_email_addresses(vcard)
+    if Normalization.PLACE in normalizations:
+        normalize_addresses(vcard)
+    if Normalization.URL in normalizations:
+        normalize_urls(vcard)
+    if Normalization.PHOTO in normalizations:
+        pass
 
 
 def process_single_vcard(
     vcard,
     *,
+    normalizations: Iterable[Normalization],
+    fallback_region: str | None,
     max_file_size: int,
     max_width: int,
     max_height: int,
 ):
-    _normalize_vcard(vcard)
+    _normalize_vcard(
+        vcard, normalizations=normalizations, fallback_region=fallback_region
+    )
 
     # Optimize included photo if available
     if "photo" in vcard.contents:
@@ -79,6 +104,9 @@ def process_single_vcard(
 def process_vcards(
     input_directory: Path,
     output_directory: Path,
+    *,
+    normalizations: Iterable[Normalization],
+    fallback_region: str | None,
     max_file_size: int,
     max_width: int,
     max_height: int,
@@ -94,6 +122,8 @@ def process_vcards(
                 # Process single vCard
                 normalized_vcard = process_single_vcard(
                     single_vcard,
+                    normalizations=normalizations,
+                    fallback_region=fallback_region,
                     max_file_size=max_file_size,
                     max_width=max_width,
                     max_height=max_height,
