@@ -1,0 +1,41 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61.0"]
+
+[project]
+authors = [
+  {email = "jgoepfert@techfak.uni-bielefeld.de", name = "Jan Philip Göpfert"}
+]
+classifiers = [
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3"
+]
+dependencies = [
+  "Pillow>=10.0.0",
+  "click>=8.1.7",
+  "loguru>=0.7.1",
+  "rich>=13.5.2"
+]
+description = "VCard Toolkit"
+name = "vcardtk"
+readme = "README.md"
+requires-python = ">=3.11"
+version = "0.1.0"
+
+[project.optional-dependencies]
+dev = [
+  "pip-tools>=7.3.0",
+  "pre-commit>=3.4.0",
+  "pytest-cov>=4.1.0",
+  "pytest>=7.4.1"
+]
+
+[project.scripts]
+vcardtk = "vcardtk.cli:enter"
+
+[project.urls]
+"Bug Tracker" = "https://github.com/jangop/vcardtk/issues"
+"Homepage" = "https://github.com/jangop/vcardtk"
+
+[tool.pytest.ini_options]
+addopts = "-ra --durations=10 --cov=src --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=50"
