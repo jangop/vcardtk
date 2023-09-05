@@ -9,9 +9,15 @@ from .core import Normalization, process_vcards
 
 @click.command()
 @click.argument(
-    "input_directory", type=click.Path(path_type=Path, exists=True, file_okay=False)
+    "source",
+    type=click.Path(path_type=Path, exists=True, file_okay=True, dir_okay=False),
+    nargs=-1,
 )
-@click.argument("output_directory", type=click.Path(path_type=Path, file_okay=False))
+@click.argument(
+    "destination",
+    type=click.Path(path_type=Path, file_okay=True, dir_okay=False),
+    nargs=1,
+)
 @click.option(
     "--normalizations",
     type=click.Choice([normalization.name for normalization in Normalization]),
@@ -44,8 +50,8 @@ from .core import Normalization, process_vcards
     help="Maximum photo height in pixels",
 )
 def enter(
-    input_directory,
-    output_directory,
+    source,
+    destination,
     normalizations,
     fallback_region,
     max_photo_file_size,
@@ -58,8 +64,8 @@ def enter(
 
     # Process vCards.
     process_vcards(
-        input_directory,
-        output_directory,
+        source,
+        destination,
         normalizations=[
             Normalization[normalization] for normalization in normalizations
         ],

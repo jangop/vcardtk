@@ -100,8 +100,8 @@ def process_single_vcard(
 
 
 def process_vcards(
-    input_directory: Path,
-    output_directory: Path,
+    sources: Iterable[Path],
+    destination: Path,
     *,
     normalizations: Iterable[Normalization],
     fallback_region: str | None,
@@ -109,23 +109,20 @@ def process_vcards(
     max_width: int,
     max_height: int,
 ):
-    for filename in os.listdir(input_directory):
-        if filename.endswith(".vcf"):
-            vcard_path = input_directory / filename
-            with open(vcard_path, encoding="utf-8") as file:
-                vcard_content = file.read()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with open(destination, "w", encoding="utf-8") as destination_file:
+        for source in sources:
+            with open(source, encoding="utf-8") as source_file:
+                source_content = source_file.read()
 
-            output_directory.mkdir(exist_ok=True)
-            output_path = output_directory / f"normalized_{filename}"
-            with open(output_path, "w", encoding="utf-8") as file:
-                for single_vcard in tqdm.tqdm(vobject.readComponents(vcard_content)):
-                    process_single_vcard(
-                        single_vcard,
-                        normalizations=normalizations,
-                        fallback_region=fallback_region,
-                        max_file_size=max_file_size,
-                        max_width=max_width,
-                        max_height=max_height,
-                    )
-                    file.write(single_vcard.serialize())
-                    file.write("\n")
+            for single_vcard in tqdm.tqdm(vobject.readComponents(source_content)):
+                process_single_vcard(
+                    single_vcard,
+                    normalizations=normalizations,
+                    fallback_region=fallback_region,
+                    max_file_size=max_file_size,
+                    max_width=max_width,
+                    max_height=max_height,
+                )
+                destination_file.write(single_vcard.serialize())
+                destination_file.write("\n")
