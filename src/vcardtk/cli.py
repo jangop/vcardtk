@@ -6,7 +6,7 @@ import phonenumbers
 import tqdm
 from loguru import logger
 
-from .core import Normalization, process_vcards
+from .core import Normalization, process_sources
 
 
 class PhoneNumberFormat(enum.Enum):
@@ -26,6 +26,13 @@ class PhoneNumberFormat(enum.Enum):
     "destination",
     type=click.Path(path_type=Path, file_okay=True, dir_okay=False, writable=True),
     nargs=1,
+)
+@click.option(
+    "--split",
+    type=int,
+    default=0,
+    help="Split the output into multiple files with "
+    "up to this many vCards per file.",
 )
 @click.option(
     "--normalizations",
@@ -67,6 +74,7 @@ class PhoneNumberFormat(enum.Enum):
 def enter(
     source,
     destination,
+    split,
     normalizations,
     phone_number_format,
     default_region,
@@ -79,9 +87,10 @@ def enter(
     logger.add(lambda msg: tqdm.tqdm.write(msg, end=""), colorize=True, level="INFO")
 
     # Process vCards.
-    process_vcards(
+    process_sources(
         source,
         destination,
+        split=split if split > 0 else None,
         normalizations=[
             Normalization[normalization] for normalization in normalizations
         ],

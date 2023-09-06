@@ -107,10 +107,11 @@ def process_single_vcard(
             os.remove(photo_file)
 
 
-def process_vcards(
+def process_sources(
     sources: Iterable[Path],
     destination: Path,
     *,
+    split: int | None,
     normalizations: Iterable[Normalization],
     phone_number_format: int,
     default_region: str | None,
@@ -119,7 +120,16 @@ def process_vcards(
     max_height: int,
 ):
     destination.parent.mkdir(parents=True, exist_ok=True)
-    with open(destination, "w", encoding="utf-8") as destination_file:
+    given_destination = destination
+    i_vcard = 0
+    if split is not None:
+        destination = given_destination.with_name(
+            f"{given_destination.stem}"
+            f"_{i_vcard // split}"
+            f"{given_destination.suffix}"
+        )
+    destination_file = open(destination, "w", encoding="utf-8")
+    try:
         for source in sources:
             with open(source, encoding="utf-8") as source_file:
                 source_content = source_file.read()
@@ -136,3 +146,15 @@ def process_vcards(
                 )
                 destination_file.write(single_vcard.serialize())
                 destination_file.write("\n")
+
+                i_vcard += 1
+                if split is not None and i_vcard % split == 0:
+                    destination_file.close()
+                    destination = given_destination.with_name(
+                        f"{given_destination.stem}"
+                        f"_{i_vcard // split}"
+                        f"{given_destination.suffix}"
+                    )
+                    destination_file = open(destination, "w", encoding="utf-8")
+    finally:
+        destination_file.close()
