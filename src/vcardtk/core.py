@@ -55,6 +55,7 @@ def process_single_vcard(
     normalizations: Iterable[Normalization],
     phone_number_format: int,
     default_region: str | None,
+    strip_photos: bool,
     max_file_size: int,
     max_width: int,
     max_height: int,
@@ -65,6 +66,11 @@ def process_single_vcard(
         phone_number_format=phone_number_format,
         default_region=default_region,
     )
+
+    if strip_photos:
+        # Remove all photos
+        if "photo" in vcard.contents:
+            del vcard.contents["photo"]
 
     # Optimize included photo if available
     if "photo" in vcard.contents:
@@ -115,6 +121,7 @@ def process_sources(
     normalizations: Iterable[Normalization],
     phone_number_format: int,
     default_region: str | None,
+    strip_photos: bool,
     max_file_size: int,
     max_width: int,
     max_height: int,
@@ -140,6 +147,7 @@ def process_sources(
                     normalizations=normalizations,
                     phone_number_format=phone_number_format,
                     default_region=default_region,
+                    strip_photos=strip_photos,
                     max_file_size=max_file_size,
                     max_width=max_width,
                     max_height=max_height,

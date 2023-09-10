@@ -53,6 +53,7 @@ class PhoneNumberFormat(enum.Enum):
     default=None,
     help="Default region for phone numbers, e.g., 'US' or 'DE'.",
 )
+@click.option("--strip-photos", is_flag=True, help="Remove all photos")
 @click.option(
     "--max-photo-file-size",
     type=int,
@@ -78,6 +79,7 @@ def enter(
     normalizations,
     phone_number_format,
     default_region,
+    strip_photos,
     max_photo_file_size,
     max_photo_width,
     max_photo_height,
@@ -96,6 +98,7 @@ def enter(
         ],
         phone_number_format=PhoneNumberFormat[phone_number_format].value,
         default_region=default_region,
+        strip_photos=strip_photos,
         max_file_size=max_photo_file_size,
         max_width=max_photo_width,
         max_height=max_photo_height,
