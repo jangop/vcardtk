@@ -27,6 +27,7 @@ class PhoneNumberFormat(enum.Enum):
     type=click.Path(path_type=Path, file_okay=True, dir_okay=False, writable=True),
     nargs=1,
 )
+@click.option("--interactive", is_flag=True, help="Interactive mode")
 @click.option(
     "--split",
     type=int,
@@ -75,6 +76,7 @@ class PhoneNumberFormat(enum.Enum):
 def enter(
     source,
     destination,
+    interactive,
     split,
     normalizations,
     phone_number_format,
@@ -92,6 +94,7 @@ def enter(
     process_sources(
         source,
         destination,
+        interactive=interactive,
         split=split if split > 0 else None,
         normalizations=[
             Normalization[normalization] for normalization in normalizations

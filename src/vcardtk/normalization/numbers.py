@@ -20,6 +20,7 @@ def normalize_dates(vcard):
 def normalize_phone_numbers(
     vcard,
     *,
+    interactive: bool,
     phone_number_format: int,
     default_region: str | None,
 ):
@@ -38,6 +39,9 @@ def normalize_phone_numbers(
                     logger.info(
                         f"Invalid phone number format: {original_number}; {error}"
                     )
+                    if not interactive:
+                        parsed_number = None
+                        break
                     vcard.prettyPrint()
                     try:
                         region = click.prompt(
@@ -51,6 +55,9 @@ def normalize_phone_numbers(
                             return
                 else:
                     break
+
+            if parsed_number is None:
+                continue
 
             formatted_number = phonenumbers.format_number(
                 parsed_number, phone_number_format

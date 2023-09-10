@@ -27,6 +27,7 @@ class Normalization(str, enum.Enum):
 def _normalize_vcard(
     vcard,
     *,
+    interactive: bool,
     normalizations: Iterable[Normalization],
     phone_number_format: int,
     default_region: str | None,
@@ -38,6 +39,7 @@ def _normalize_vcard(
     if Normalization.PHONE in normalizations:
         normalize_phone_numbers(
             vcard,
+            interactive=interactive,
             phone_number_format=phone_number_format,
             default_region=default_region,
         )
@@ -52,6 +54,7 @@ def _normalize_vcard(
 def process_single_vcard(
     vcard,
     *,
+    interactive: bool,
     normalizations: Iterable[Normalization],
     phone_number_format: int,
     default_region: str | None,
@@ -62,6 +65,7 @@ def process_single_vcard(
 ):
     _normalize_vcard(
         vcard,
+        interactive=interactive,
         normalizations=normalizations,
         phone_number_format=phone_number_format,
         default_region=default_region,
@@ -117,6 +121,7 @@ def process_sources(
     sources: Iterable[Path],
     destination: Path,
     *,
+    interactive: bool,
     split: int | None,
     normalizations: Iterable[Normalization],
     phone_number_format: int,
@@ -144,6 +149,7 @@ def process_sources(
             for single_vcard in vobject.readComponents(source_content):
                 process_single_vcard(
                     single_vcard,
+                    interactive=interactive,
                     normalizations=normalizations,
                     phone_number_format=phone_number_format,
                     default_region=default_region,
